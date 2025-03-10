@@ -56,7 +56,9 @@ io.on("connection", (socket) => {
 
     socket.on("sendMessage", (data) => {
         const { mensaje, idusuario, image } = data;
-        
+
+    
+    
         // Verificar si el mensaje tiene una imagen en base64
         if (image) {
             const query = "INSERT INTO chat (mensaje, idusuario, image) VALUES (?, ?, ?)";
@@ -109,6 +111,7 @@ io.on("connection", (socket) => {
             });
         }
     });
+    
     
     
 
