@@ -55,33 +55,17 @@ io.on("connection", (socket) => {
     });
 
     socket.on("sendMessage", (data) => {
+        console.log(data)
+        const query = "INSERT INTO chat (mensaje, idusuario) VALUES (?, ?)";
+        const params = [data.mensaje, data.idusuario]; // ID de usuario de ejemplo, cambia esto según tu sistema de usuarios
 
-        // Verificar si el mensaje tiene una imagen en base64
-        if (data.image) {
-            const query = "INSERT INTO chat (mensaje, idusuario, image) VALUES (?, ?, ?)";
-            const params = [data.mensaje, data.idusuario, data.image]; // Guardamos la imagen como base64
-
-            pool.query(query, params, (err, result) => {
-                if (err) {
-                    console.error("Error al insertar el mensaje con imagen:", err);
-                } else {
-                    console.log("Insertado correctamente");
-                    io.emit("message", data);
-                }
-            });
-        } else {
-            // Si no tiene imagen, solo se guarda el mensaje de texto
-            const query = "INSERT INTO chat (mensaje, idusuario) VALUES (?, ?)";
-            const params = [data.mensaje, data.idusuario];
-
-            pool.query(query, params, (err, result) => {
-                if (err) {
-                    console.error("Error al insertar el mensaje:", err);
-                } else {
-                    io.emit("message", data);
-                }
-            });
-        }
+        pool.query(query, params, (err, result) => {
+            if (err) {
+                console.error("Error al insertar el mensaje:", err);
+            } else {
+                io.emit("message", data);
+            }
+        });
     });
 
     socket.on("disconnect", () => {
