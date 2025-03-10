@@ -44,7 +44,7 @@ io.on("connection", (socket) => {
     socket.emit("userConnected", { userId: socket.id });
 
     // Consultar los mensajes anteriores en la base de datos
-    const query = "SELECT chat.*, concat(usuarios.nombre,' ' ,usuarios.apellido) AS nombre FROM chat JOIN usuarios ON usuarios.id=chat.idusuario ORDER BY timestamp ASC LIMIT 200"; // Obtén los últimos 200 mensajes
+    const query = "SELECT chat.*, concat(usuarios.nombre,' ' ,usuarios.apellido) AS nombre, usuarios.avatar FROM chat JOIN usuarios ON usuarios.id=chat.idusuario ORDER BY timestamp ASC LIMIT 200"; // Obtén los últimos 200 mensajes
     pool.query(query, (err, results) => {
         if (err) {
             console.error("Error al consultar los mensajes:", err);
@@ -55,34 +55,62 @@ io.on("connection", (socket) => {
     });
 
     socket.on("sendMessage", (data) => {
-
+        const { mensaje, idusuario, image } = data;
+        
         // Verificar si el mensaje tiene una imagen en base64
-        if (data.image) {
+        if (image) {
             const query = "INSERT INTO chat (mensaje, idusuario, image) VALUES (?, ?, ?)";
-            const params = [data.mensaje, data.idusuario, data.image]; // Guardamos la imagen como base64
-
+            const params = [mensaje, idusuario, image]; // Guardamos la imagen como base64
+    
             pool.query(query, params, (err, result) => {
                 if (err) {
                     console.error("Error al insertar el mensaje con imagen:", err);
                 } else {
-                    console.log("Insertado correctamente");
-                    io.emit("message", data);
+                    console.log("Mensaje con imagen insertado correctamente");
+    
+                    // Obtener avatar de la base de datos
+                    const queryAvatar = "SELECT avatar FROM usuarios WHERE id = ?";
+                    pool.query(queryAvatar, [idusuario], (err, avatarResult) => {
+                        if (err) {
+                            console.error("Error al obtener el avatar:", err);
+                        } else {
+                            const avatar = avatarResult.length > 0 ? avatarResult[0].avatar : null;
+    
+                            // Emitir el mensaje junto con el avatar
+                            io.emit("message", { ...data, avatar });
+                        }
+                    });
                 }
             });
         } else {
             // Si no tiene imagen, solo se guarda el mensaje de texto
             const query = "INSERT INTO chat (mensaje, idusuario) VALUES (?, ?)";
-            const params = [data.mensaje, data.idusuario];
-
+            const params = [mensaje, idusuario];
+    
             pool.query(query, params, (err, result) => {
                 if (err) {
                     console.error("Error al insertar el mensaje:", err);
                 } else {
-                    io.emit("message", data);
+                    console.log("Mensaje insertado correctamente");
+    
+                    // Obtener avatar de la base de datos
+                    const queryAvatar = "SELECT avatar FROM usuarios WHERE id = ?";
+                    pool.query(queryAvatar, [idusuario], (err, avatarResult) => {
+                        if (err) {
+                            console.error("Error al obtener el avatar:", err);
+                        } else {
+                            const avatar = avatarResult.length > 0 ? avatarResult[0].avatar : null;
+    
+                            // Emitir el mensaje junto con el avatar
+                            io.emit("message", { ...data, avatar });
+                        }
+                    });
                 }
             });
         }
     });
+    
+    
 
     socket.on("disconnect", () => {
         console.log("🔴 Usuario desconectado:", socket.id);
